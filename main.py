@@ -1,33 +1,36 @@
 import streamlit as st
 
-# 초기 설정
-TOTAL_CAPACITY = 200
-
-# 데이터 불러오기 (실제로는 파일이나 DB 연결 권장)
+# 초기값 설정 (실제 운영 시에는 구글 시트 연동 권장)
 if 'count' not in st.session_state:
     st.session_state.count = 0
 
+TOTAL = 200
+remaining = TOTAL - st.session_state.count
+
+# --- 사용자 화면 (누구나 보는 화면) ---
 st.title("☕ 사내 카페 실시간 현황")
 
-# 현재 상태 계산
-remaining = TOTAL_CAPACITY - st.session_state.count
+# 상태에 따른 색상 및 메시지 설정
+if remaining > 50:
+    st.success(f"현재 주문 가능합니다! (남은 수량: {remaining}잔)")
+elif remaining > 0:
+    st.warning(f"마감이 임박했습니다! (남은 수량: {remaining}잔)")
+else:
+    st.error("오늘 준비된 200잔이 모두 마감되었습니다.")
 
-# 대시보드 표시
-col1, col2 = st.columns(2)
-col1.metric("판매된 잔 수", f"{st.session_state.count}잔")
-col2.metric("남은 잔 수", f"{remaining}잔", delta_color="inverse")
+# 시각적인 게이지 차트
+st.progress(st.session_state.count / TOTAL)
+st.metric("현재 판매량", f"{st.session_state.count} / {TOTAL}")
 
-# 진행률 표시
-progress = st.session_state.count / TOTAL_CAPACITY
-st.progress(progress)
+# --- 관리자 영역 (비밀번호 입력 시에만 등장) ---
+st.divider()
+admin_pw = st.sidebar.text_input("관리자 인증", type="password")
 
-if st.session_state.count >= TOTAL_CAPACITY:
-    st.error("🚫 오늘 준비된 수량이 모두 소진되었습니다. 내일 만나요!")
-elif remaining <= 20:
-    st.warning("⚠️ 마감 임박! 곧 200잔이 마감됩니다.")
-
-# 관리 권한이 있는 경우에만 버튼 노출 (비밀번호 등으로 제한 가능)
-if st.button("커피 1잔 판매 (+1)"):
-    if st.session_state.count < TOTAL_CAPACITY:
+if admin_pw == "1234":  # 설정하실 비밀번호
+    st.sidebar.subheader("매니저 전용 컨트롤러")
+    if st.sidebar.button("1잔 판매 완료 (+1)"):
         st.session_state.count += 1
+        st.rerun()
+    if st.sidebar.button("초기화 (새로 시작)"):
+        st.session_state.count = 0
         st.rerun()
